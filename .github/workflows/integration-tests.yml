@@ -1,0 +1,38 @@
+---
+name: Ansible Integration Test
+on:  # yamllint disable-line rule:truthy
+  pull_request:
+  merge_group:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  ansible_test:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    services:
+      testvcenter:
+        image: vmware/vcsim
+        ports:
+          - 8989:8989
+    steps:
+      - name: Update pip, git
+        run: |
+          set -euxo pipefail
+          sudo dnf update -y
+          sudo dnf install -y python3-devel python3-pip git curl ansible gcc
+          sudo pip install requests pyvmomi
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/bardielle/vmware
+
+      - name: Run
+        run: |
+          ansible-test integration -v --color
+        working-directory: ansible_collections/bardielle/vmware
